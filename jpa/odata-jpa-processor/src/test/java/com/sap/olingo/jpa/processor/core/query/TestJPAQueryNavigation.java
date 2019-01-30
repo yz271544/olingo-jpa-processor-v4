@@ -1,6 +1,9 @@
 package com.sap.olingo.jpa.processor.core.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -35,10 +38,32 @@ public class TestJPAQueryNavigation extends TestBase {
   }
 
   @Test
+  public void testNoNavigationOneEntityCollection() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf, "Organizations('1')");
+    helper.assertStatus(200);
+
+    ObjectNode org = helper.getValue();
+    ArrayNode comment = (ArrayNode) org.get("Comment");
+    assertEquals(2, comment.size());
+  }
+
+  @Test
   public void testNoNavigationOneEntityNotFound() throws IOException, ODataException {
 
     IntegrationTestHelper helper = new IntegrationTestHelper(emf, "Organizations('1000')");
     helper.assertStatus(404);
+  }
+
+  @Test
+  public void testNavigationToComplexValue() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf,
+        "Organizations('3')/AdministrativeInformation/Created");
+    helper.assertStatus(200);
+
+    ObjectNode created = helper.getValue();
+    assertEquals("99", created.get("By").asText());
   }
 
   @Test
@@ -63,6 +88,18 @@ public class TestJPAQueryNavigation extends TestBase {
 
     ObjectNode org = helper.getValue();
     assertEquals("2", org.get("ID").asText());
+  }
+
+  @Test
+  public void testNavigationViaComplexTypeToComplexType() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf,
+        "Organizations('3')/AdministrativeInformation/Created/User/AdministrativeInformation");
+    helper.assertStatus(200);
+
+    ObjectNode admin = helper.getValue();
+    ObjectNode created = (ObjectNode) admin.get("Created");
+    assertEquals("99", created.get("By").asText());
   }
 
   @Test
@@ -182,5 +219,65 @@ public class TestJPAQueryNavigation extends TestBase {
 
     ArrayNode orgs = helper.getValues();
     assertEquals(2, orgs.size());
+  }
+
+  @Test
+  public void testNavigationComplexProperty() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf, "Organizations('1')/AdministrativeInformation");
+    helper.assertStatus(200);
+
+    ObjectNode org = helper.getValue();
+
+    assertNotNull(org.get("Created"));
+    assertNotNull(org.get("Updated"));
+  }
+
+  @Test
+  public void testNavigationPrimitiveCollectionProperty() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf, "Organizations('1')/Comment");
+    helper.assertStatus(200);
+
+    ObjectNode org = helper.getValue();
+    assertNotNull(org.get("value"));
+    assertFalse(org.get("value").isNull());
+    ArrayNode values = (ArrayNode) org.get("value");
+    assertEquals(2, values.size());
+    assertTrue(values.get(0).asText().equals("This is just a test") || values.get(0).asText().equals(
+        "This is another test"));
+    assertTrue(values.get(1).asText().equals("This is just a test") || values.get(1).asText().equals(
+        "This is another test"));
+  }
+
+  @Test
+  public void testNavigationComplexCollectionProperty() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf, "Persons('99')/InhouseAddress");
+    helper.assertStatus(200);
+
+    ObjectNode org = helper.getValue();
+    assertNotNull(org.get("value"));
+    assertFalse(org.get("value").isNull());
+    ArrayNode values = (ArrayNode) org.get("value");
+    assertEquals(2, values.size());
+  }
+
+  @Test
+  public void testNavigationPrimitiveCollectionPropertyTwoHops() throws IOException, ODataException {
+
+    IntegrationTestHelper helper = new IntegrationTestHelper(emf,
+        "BusinessPartnerRoles(BusinessPartnerID='1',RoleCategory='A')/Organization/Comment");
+    helper.assertStatus(200);
+
+    ObjectNode org = helper.getValue();
+    assertNotNull(org.get("value"));
+    assertFalse(org.get("value").isNull());
+    ArrayNode values = (ArrayNode) org.get("value");
+    assertEquals(2, values.size());
+    assertTrue(values.get(0).asText().equals("This is just a test") || values.get(0).asText().equals(
+        "This is another test"));
+    assertTrue(values.get(1).asText().equals("This is just a test") || values.get(1).asText().equals(
+        "This is another test"));
   }
 }

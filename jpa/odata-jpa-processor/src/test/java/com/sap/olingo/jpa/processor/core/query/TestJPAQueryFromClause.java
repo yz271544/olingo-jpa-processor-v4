@@ -28,7 +28,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.sap.olingo.jpa.metadata.api.JPAEdmProvider;
-import com.sap.olingo.jpa.metadata.core.edm.mapper.api.JPAAssociationAttribute;
+import com.sap.olingo.jpa.metadata.core.edm.mapper.api.JPAAssociationPath;
 import com.sap.olingo.jpa.metadata.core.edm.mapper.api.JPAAttribute;
 import com.sap.olingo.jpa.metadata.core.edm.mapper.api.JPAEntityType;
 import com.sap.olingo.jpa.metadata.core.edm.mapper.api.JPAPath;
@@ -63,7 +63,7 @@ public class TestJPAQueryFromClause extends TestBase {
     helper = new TestHelper(emf, PUNIT_NAME);
     jpaEntityType = helper.getJPAEntityType("Organizations");
     JPAODataSessionContextAccess context = new JPAODataContextAccessDouble(new JPAEdmProvider(PUNIT_NAME, emf, null,
-        TestBase.enumPackages), ds);
+        TestBase.enumPackages), ds, null);
     createHeaders();
 
     cut = new JPAJoinQuery(null, context, emf.createEntityManager(), headers, uriInfo);
@@ -71,28 +71,27 @@ public class TestJPAQueryFromClause extends TestBase {
 
   @Test
   public void checkFromListContainsRoot() throws ODataApplicationException {
-    Map<String, From<?, ?>> act = cut.createFromClause(new ArrayList<JPAAssociationAttribute>(),
-        new ArrayList<JPAPath>());
+
+    Map<String, From<?, ?>> act = cut.createFromClause(new ArrayList<JPAAssociationPath>(1),
+        new ArrayList<JPAPath>(), cut.cq);
     assertNotNull(act.get(jpaEntityType.getInternalName()));
   }
 
   @Test
   public void checkFromListOrderByContainsOne() throws ODataJPAModelException, ODataApplicationException {
-    List<JPAAssociationAttribute> orderBy = new ArrayList<>();
-    JPAAttribute exp = helper.getJPAAssociation("Organizations", "roles");
-    orderBy.add((JPAAssociationAttribute) exp);
+    final List<JPAAssociationPath> orderBy = new ArrayList<>();
+    final JPAAssociationPath exp = buildRoleAssociationPath(orderBy);
 
-    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>());
-    assertNotNull(act.get(exp.getInternalName()));
+    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>(), cut.cq);
+    assertNotNull(act.get(exp.getAlias()));
   }
 
   @Test
   public void checkFromListOrderByOuterJoinOne() throws ODataJPAModelException, ODataApplicationException {
-    List<JPAAssociationAttribute> orderBy = new ArrayList<>();
-    JPAAttribute exp = helper.getJPAAssociation("Organizations", "roles");
-    orderBy.add((JPAAssociationAttribute) exp);
+    final List<JPAAssociationPath> orderBy = new ArrayList<>();
+    buildRoleAssociationPath(orderBy);
 
-    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>());
+    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>(), cut.cq);
 
     @SuppressWarnings("unchecked")
     Root<Organization> root = (Root<Organization>) act.get(jpaEntityType.getInternalName());
@@ -106,11 +105,10 @@ public class TestJPAQueryFromClause extends TestBase {
 
   @Test
   public void checkFromListOrderByOuterJoinOnConditionOne() throws ODataJPAModelException, ODataApplicationException {
-    List<JPAAssociationAttribute> orderBy = new ArrayList<>();
-    JPAAttribute exp = helper.getJPAAssociation("Organizations", "roles");
-    orderBy.add((JPAAssociationAttribute) exp);
+    final List<JPAAssociationPath> orderBy = new ArrayList<>();
+    buildRoleAssociationPath(orderBy);
 
-    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>());
+    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, new ArrayList<JPAPath>(), cut.cq);
 
     @SuppressWarnings("unchecked")
     Root<Organization> root = (Root<Organization>) act.get(jpaEntityType.getInternalName());
@@ -124,7 +122,7 @@ public class TestJPAQueryFromClause extends TestBase {
 
   @Test
   public void checkFromListDescriptionAssozationAllFields() throws ODataApplicationException, ODataJPAModelException {
-    List<JPAAssociationAttribute> orderBy = new ArrayList<>();
+    List<JPAAssociationPath> orderBy = new ArrayList<>();
     List<JPAPath> descriptionPathList = new ArrayList<>();
     JPAEntityType entity = helper.getJPAEntityType("Organizations");
     descriptionPathList.add(entity.getPath("Address/CountryName"));
@@ -132,14 +130,14 @@ public class TestJPAQueryFromClause extends TestBase {
     JPAAttribute attri = helper.getJPAAttribute("Organizations", "address");
     JPAAttribute exp = attri.getStructuredType().getAttribute("countryName");
 
-    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, descriptionPathList);
+    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, descriptionPathList, cut.cq);
     assertEquals(2, act.size());
     assertNotNull(act.get(exp.getInternalName()));
   }
 
   @Test
   public void checkFromListDescriptionAssozationAllFields2() throws ODataApplicationException, ODataJPAModelException {
-    List<JPAAssociationAttribute> orderBy = new ArrayList<>();
+    List<JPAAssociationPath> orderBy = new ArrayList<>();
     List<JPAPath> descriptionPathList = new ArrayList<>();
     JPAEntityType entity = helper.getJPAEntityType("Organizations");
     descriptionPathList.add(entity.getPath("Address/RegionName"));
@@ -147,8 +145,16 @@ public class TestJPAQueryFromClause extends TestBase {
     JPAAttribute attri = helper.getJPAAttribute("Organizations", "address");
     JPAAttribute exp = attri.getStructuredType().getAttribute("regionName");
 
-    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, descriptionPathList);
+    Map<String, From<?, ?>> act = cut.createFromClause(orderBy, descriptionPathList, cut.cq);
     assertEquals(2, act.size());
     assertNotNull(act.get(exp.getInternalName()));
   }
+
+  private JPAAssociationPath buildRoleAssociationPath(final List<JPAAssociationPath> orderBy)
+      throws ODataJPAModelException {
+    JPAAssociationPath exp = helper.getJPAAssociationPath("Organizations", "Roles");
+    orderBy.add(exp);
+    return exp;
+  }
+
 }

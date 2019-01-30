@@ -1,6 +1,7 @@
 package com.sap.olingo.jpa.processor.core.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -8,7 +9,6 @@ import org.apache.olingo.commons.api.ex.ODataException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sap.olingo.jpa.processor.core.testmodel.ImageLoader;
 import com.sap.olingo.jpa.processor.core.util.IntegrationTestHelper;
@@ -75,8 +75,7 @@ public class TestJPAQuerySelectByPath extends TestBase {
     helper.assertStatus(200);
 
     ObjectNode org = helper.getValue();
-    JsonNode created = org.get("Created");
-    assertEquals("98", created.get("By").asText());
+    assertEquals("98", org.get("By").asText());
   }
 
   @Test
@@ -120,8 +119,9 @@ public class TestJPAQuerySelectByPath extends TestBase {
     helper.assertStatus(200);
 
     ObjectNode org = helper.getValue();
+    System.out.println(org);
     assertEquals("US-UT", org.get("value").asText());
-    assertEquals("$metadata#Organizations/Address/Region", org.get("@odata.context").asText());
+    assertTrue(org.get("@odata.context").asText().endsWith("$metadata#Organizations/Address/Region"));
   }
 
   @Ignore // TODO check image load
